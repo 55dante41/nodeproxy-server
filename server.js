@@ -1,12 +1,13 @@
 var http = require('http'),
-	stream = require('stream');
+	stream = require('stream'),
+	regexMap = require('./app/regex');
 
 http.createServer(function (request, response)
 {
 	var proxyOptions =
 	{
 		host: 'www.google.com',
-		path: '/?gfe_rd=cr&ei=&gws_rd=cr',
+		path: '/?gfe_rd=cr&gws_rd=cr',
 		method: 'GET'
 	};
 	var proxyRequest = http.request(proxyOptions, function ()
@@ -16,22 +17,26 @@ http.createServer(function (request, response)
 	proxyRequest.addListener('response', function (proxyResponse)
 	{
 		var editProxyResponse = new stream.Writable();
-		editProxyResponse._write = function (chunk, encoding, done)
+		var dataChunk = '';
+		editProxyResponse._write = function (chunk, encoding, callback)
 		{
-			var data = chunk.toString();
-			console.log(data);
-			done();
+			dataChunk = chunk.toString().replace('</body>','<script></script></body>');
+			//dataChunk = dataChunk.replace(regexMap[1],'Madivala');
+			callback();
 		}
-		proxyResponse.pipe(editProxyResponse);
+		var editPrxyResp = function() {
+			response.write(dataChunk, 'binary');
+		}
 
 		proxyResponse.addListener('data', function (chunk)
 		{
-			response.write(chunk, 'binary');
+			editProxyResponse.write(chunk,'buffer',editPrxyResp);
 		});
 		proxyResponse.addListener('end', function ()
 		{
 			response.end();
 		});
+
 		var newHeaders = proxyResponse.headers;
 		newHeaders.location = 'http://localhost:2000';
 		response.writeHead(200, proxyResponse.headers);
@@ -45,6 +50,6 @@ http.createServer(function (request, response)
 	{
 		proxyRequest.end();
 	});
-}).listen(2000);
+}).listen(2005);
 
-console.log("Proxy running on 2000");
+console.log("Proxy running on 2005");
