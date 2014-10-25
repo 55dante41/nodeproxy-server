@@ -1,5 +1,5 @@
 var regexMappings = [];
-var absoluteUrlRegex = new RegExp("(http(s?):)?//([^\"'> \t\)]+)");
+var absoluteUrlRegex = new RegExp("(http(s?):)?//([^\"'> \t\)]+)","g");
 //var relativeUrlRegex = new RegExp("/(?!(/)|(http(s?)://)|(url\())([^\"'> \t\)]*)");
 regexMappings.push(absoluteUrlRegex);
 //regexMappings.push(relativeUrlRegex);
