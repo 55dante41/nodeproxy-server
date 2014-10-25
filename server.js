@@ -1,6 +1,7 @@
 var http = require('http'),
 	stream = require('stream'),
-	regexMap = require('./app/regex');
+	regexMap = require('./app/regex'),
+	concatStream = require('concat-stream');
 
 http.createServer(function (request, response)
 {
@@ -12,28 +13,24 @@ http.createServer(function (request, response)
 	};
 	var proxyRequest = http.request(proxyOptions, function ()
 	{
+		console.log("1: Created ProxyRequest");
 		//Proxy request callback
 	});
-	proxyRequest.addListener('response', function (proxyResponse)
+	proxyRequest.on('response', function (proxyResponse)
 	{
-		var editProxyResponse = new stream.Writable();
-		var dataChunk = '';
-		editProxyResponse._write = function (chunk, encoding, callback)
+		console.log("3: Proxy Request received response from remote server");
+		var editProxyResponse = concatStream(function (data)
 		{
-			dataChunk = chunk.toString().replace('</body>','<script></script></body>');
-			//dataChunk = dataChunk.replace(regexMap[1],'Madivala');
-			callback();
-		}
-		var editPrxyResp = function() {
-			response.write(dataChunk, 'binary');
-		}
-
-		proxyResponse.addListener('data', function (chunk)
-		{
-			editProxyResponse.write(chunk,'buffer',editPrxyResp);
+			console.log("4: Response to proxyserver is bubbled in here and sent back to the client");
+			console.log(data.toString().match(regexMap[0]));
+			response.write(data, 'binary');
 		});
-		proxyResponse.addListener('end', function ()
+
+		proxyResponse.pipe(editProxyResponse);
+
+		proxyResponse.on('end', function ()
 		{
+			console.log("Ended proxy request");
 			response.end();
 		});
 
@@ -41,13 +38,14 @@ http.createServer(function (request, response)
 		newHeaders.location = 'http://localhost:2000';
 		response.writeHead(200, proxyResponse.headers);
 	});
-	request.addListener('data', function (chunk)
+	request.on('data', function (chunk)
 	{
-		console.log(chunk.toString());
+		console.log("2: Get data from actual request and write to proxy request");
 		proxyRequest.write(chunk, 'binary');
 	});
-	request.addListener('end', function ()
+	request.on('end', function ()
 	{
+		console.log("Request ended. Ending proxy's request");
 		proxyRequest.end();
 	});
 }).listen(2005);
