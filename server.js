@@ -13,16 +13,15 @@ http.createServer(function (request, response)
 	};
 	var proxyRequest = http.request(proxyOptions, function ()
 	{
-		console.log("1: Created ProxyRequest");
 		//Proxy request callback
 	});
 	proxyRequest.on('response', function (proxyResponse)
 	{
-		console.log("3: Proxy Request received response from remote server");
 		var editProxyResponse = concatStream(function (data)
 		{
-			console.log("4: Response to proxyserver is bubbled in here and sent back to the client");
 			console.log(data.toString().match(regexMap[0]));
+			console.log(data.toString().match(regexMap[1]));
+			data = data.toString().replace('</head>', '<link href="/public/images/favicon.ico" rel="icon" type="image/x-icon" /></head>');
 			response.write(data, 'binary');
 		});
 
@@ -30,7 +29,6 @@ http.createServer(function (request, response)
 
 		proxyResponse.on('end', function ()
 		{
-			console.log("Ended proxy request");
 			response.end();
 		});
 
@@ -40,12 +38,10 @@ http.createServer(function (request, response)
 	});
 	request.on('data', function (chunk)
 	{
-		console.log("2: Get data from actual request and write to proxy request");
 		proxyRequest.write(chunk, 'binary');
 	});
 	request.on('end', function ()
 	{
-		console.log("Request ended. Ending proxy's request");
 		proxyRequest.end();
 	});
 }).listen(2005);
